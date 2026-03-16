@@ -1,5 +1,6 @@
 #include "rosbag_rviz_panel/BagPlayerWidget.h"
 
+#include <QCheckBox>
 #include <QFileDialog>
 #include <QIcon>
 #include <QMessageBox>
@@ -43,6 +44,7 @@ BagPlayerWidget::BagPlayerWidget(QWidget* parent) : QWidget(parent), _ui(std::ma
     connect(_ui->slower_button, &QPushButton::clicked, this, &BagPlayerWidget::handleSlowerClicked);
     connect(_ui->faster_button, &QPushButton::clicked, this, &BagPlayerWidget::handleFasterClicked);
     connect(_ui->load_button, &QPushButton::clicked, this, &BagPlayerWidget::handleLoadClicked);
+    connect(_ui->clock_checkbox, &QCheckBox::toggled, this, &BagPlayerWidget::sendPublishClock);
 
     receiveEnableActionButtons(false);
 }
@@ -88,12 +90,13 @@ void BagPlayerWidget::handleLoadClicked(void)
     const QFileInfo filename = QFileDialog::getOpenFileName(
             this,
             tr("Select the bag to load"),
-            QDir::homePath(),
+            _last_bag_dir.isEmpty() ? QDir::currentPath() : _last_bag_dir,
             tr("Bag file (*.bag)"),
             nullptr,
             QFileDialog::DontUseNativeDialog);
 
     if (filename.exists() && !filename.absoluteFilePath().isEmpty()) {
+        _last_bag_dir = filename.absolutePath();
         try {
             Q_EMIT sendLoadBag(filename.absoluteFilePath());
         } catch (const rosbag::BagException& e) {
@@ -202,6 +205,11 @@ void BagPlayerWidget::connectSignals(void)
     connect(this, &BagPlayerWidget::sendSetEnd, _player.get(), &QBagPlayer::receiveSetEnd, Qt::QueuedConnection);
     connect(this, &BagPlayerWidget::sendFaster, _player.get(), &QBagPlayer::receiveChangeSpeed, Qt::QueuedConnection);
     connect(this, &BagPlayerWidget::sendSlower, _player.get(), &QBagPlayer::receiveChangeSpeed, Qt::QueuedConnection);
+    connect(this,
+            &BagPlayerWidget::sendPublishClock,
+            _player.get(),
+            &QBagPlayer::receiveSetPublishClock,
+            Qt::QueuedConnection);
 
     connect(_ui->end_button, &QPushButton::clicked, _player.get(), &QBagPlayer::receiveGotoEnd, Qt::QueuedConnection);
     connect(_ui->begin_button,

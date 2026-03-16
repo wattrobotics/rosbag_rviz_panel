@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <rosgraph_msgs/Clock.h>
 
 #include <QObject>
 #include <QString>
@@ -97,7 +98,7 @@ class ROSBAG_STORAGE_DECL QBagPlayer : public QObject
      *
      * @return ros::Time with the time stam to sleep until.
      */
-    ros::Time real_time(const ros::Time& msg_time);
+    ros::WallTime real_time(const ros::Time& msg_time);
 
     /**
      * @brief Calculate the time stamp to start playing from
@@ -243,8 +244,16 @@ class ROSBAG_STORAGE_DECL QBagPlayer : public QObject
      */
     void receiveClickedProgress(int value);
 
+    /**
+     * @brief Q_SLOT to enable or disable publishing /clock messages.
+     *
+     * @param enabled Bool to enable or disable clock publishing.
+     */
+    void receiveSetPublishClock(const bool enabled);
+
   private:
     ros::NodeHandle               _nh;
+    ros::Publisher                _clock_pub;
     rosbag::Bag                   _bag;
     std::unique_ptr<rosbag::View> _full_view;
 
@@ -256,11 +265,12 @@ class ROSBAG_STORAGE_DECL QBagPlayer : public QObject
     ros::Time _bag_control_end;
     ros::Time _full_bag_start, _full_bag_end;
     ros::Time _last_message_time;
-    ros::Time _play_start;
+    ros::WallTime _play_start;
 
     double _playback_speed{1.0};
     bool   _pause{false};
     bool   _thread_running{false};
+    bool   _publish_clock{false};
     bool   _playback_direction_changed{false};
 
     std::mutex _playback_mutex;

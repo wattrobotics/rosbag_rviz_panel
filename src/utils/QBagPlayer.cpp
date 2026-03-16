@@ -10,6 +10,7 @@ namespace rosbag_rviz_panel {
 QBagPlayer::QBagPlayer(QObject* parent) : QObject(parent), _nh("~")
 {
     ros::Time::init();
+    _clock_pub = _nh.advertise<rosgraph_msgs::Clock>("/clock", 1);
 }
 
 QBagPlayer::~QBagPlayer()
@@ -281,7 +282,7 @@ void QBagPlayer::run(void)
     rosbag::View view(_bag, _bag_control_start, _bag_control_end);
 
     if (_playback_speed > 0) {
-        _play_start = ros::Time::now();
+        _play_start = ros::WallTime::now();
 
         for (rosbag::MessageInstance const& m : view) {
             if (_pubs.find(m.getTopic()) == _pubs.end())
@@ -295,10 +296,16 @@ void QBagPlayer::run(void)
                 }
             }
 
-            ros::Time::sleepUntil(real_time(m.getTime()));
+            ros::WallTime::sleepUntil(real_time(m.getTime()));
 
             _last_message_time = m.getTime();
             _pubs[m.getTopic()].publish(m);
+
+            if (_publish_clock) {
+                rosgraph_msgs::Clock clock_msg;
+                clock_msg.clock = _last_message_time;
+                _clock_pub.publish(clock_msg);
+            }
 
             Q_EMIT sendStampLabel(QString::number(_last_message_time.toSec(), 'f', 9));
             Q_EMIT sendDateLabel(QDateTime::fromSecsSinceEpoch(_last_message_time.toSec(), Qt::UTC)
@@ -315,7 +322,7 @@ void QBagPlayer::run(void)
             return it->getTime() <= _bag_control_end;
         });
         if (rfound != _reverse_bag.rend()) {
-            _play_start = ros::Time::now();
+            _play_start = ros::WallTime::now();
 
             for (auto r_iter = rfound; r_iter != _reverse_bag.rend(); ++r_iter) {
                 const auto& m = *(*r_iter);
@@ -331,10 +338,16 @@ void QBagPlayer::run(void)
                     }
                 }
 
-                ros::Time::sleepUntil(real_time(m.getTime()));
+                ros::WallTime::sleepUntil(real_time(m.getTime()));
 
                 _last_message_time = m.getTime();
                 _pubs[m.getTopic()].publish(m);
+
+                if (_publish_clock) {
+                    rosgraph_msgs::Clock clock_msg;
+                    clock_msg.clock = _last_message_time;
+                    _clock_pub.publish(clock_msg);
+                }
 
                 Q_EMIT sendStampLabel(QString::number(_last_message_time.toSec(), 'f', 9));
                 Q_EMIT sendDateLabel(QDateTime::fromSecsSinceEpoch(_last_message_time.toSec(), Qt::UTC)
@@ -411,14 +424,19 @@ void QBagPlayer::resetTxt(void)
     Q_EMIT sendPlayheadProgress(0);
 }
 
-ros::Time QBagPlayer::real_time(const ros::Time& msg_time)
+ros::WallTime QBagPlayer::real_time(const ros::Time& msg_time)
 {
     std::lock_guard<std::mutex> lock(_playback_mutex);
 
     if (_playback_speed > 0.0)
-        return _play_start + (msg_time - _bag_control_start) * (1 / _playback_speed);
+        return _play_start + ros::WallDuration((msg_time - _bag_control_start).toSec() / _playback_speed);
     else
-        return _play_start + (_bag_control_end - msg_time) * (1 / std::abs(_playback_speed));
+        return _play_start + ros::WallDuration((_bag_control_end - msg_time).toSec() / std::abs(_playback_speed));
+}
+
+void QBagPlayer::receiveSetPublishClock(const bool enabled)
+{
+    _publish_clock = enabled;
 }
 
 ros::Time QBagPlayer::getProgressTime(const int progress)

@@ -108,6 +108,13 @@ class BagPlayerWidget : public QWidget
      */
     void sendSlower(const float value);
 
+    /**
+     * @brief Q_SIGNAL that enables or disables /clock publishing.
+     *
+     * @param enabled Bool to enable or disable clock publishing.
+     */
+    void sendPublishClock(const bool enabled);
+
   private Q_SLOTS:
     /**
      * @brief Q_SLOT that handles actions for when
@@ -201,5 +208,7 @@ class BagPlayerWidget : public QWidget
     std::unique_ptr<QBagPlayer>         _player;
     std::unique_ptr<QThread>            _player_thread;
     std::unique_ptr<QCustomProgressBar> _progress_bar;
+
+    QString _last_bag_dir;
 };
 } // namespace rosbag_rviz_panel

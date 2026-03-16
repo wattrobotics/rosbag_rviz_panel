@@ -52,13 +52,13 @@ MESSAGE(STATUS "Using CMAKE_PREFIX_PATH - ${CMAKE_PREFIX_PATH}")
 #######################
 ## Configuring ROS   ##
 #######################
-find_package(catkin REQUIRED 
-                    COMPONENTS roscpp pluginlib rviz rosbag)
-  
+find_package(catkin REQUIRED
+                    COMPONENTS roscpp pluginlib rviz rosbag rosgraph_msgs)
+
 catkin_package(
    INCLUDE_DIRS   include
    LIBRARIES      ${PROJECT_NAME}
-   CATKIN_DEPENDS roscpp pluginlib rviz rosbag
+   CATKIN_DEPENDS roscpp pluginlib rviz rosbag rosgraph_msgs
    DEPENDS        
 )
 

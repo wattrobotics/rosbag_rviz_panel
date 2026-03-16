@@ -48,6 +48,16 @@
       </widget>
      </item>
      <item>
+      <widget class="QCheckBox" name="clock_checkbox">
+       <property name="toolTip">
+        <string>Publish /clock topic (simulated time)</string>
+       </property>
+       <property name="text">
+        <string>Clock</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="Line" name="line_3">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
